@@ -7,8 +7,10 @@
 #include <time.h>       /* time */
 #include "boost/random.hpp"
 #include "boost/generator_iterator.hpp"
-#include "boost/python/numpy.hpp"
 
+#include <boost/python.hpp>
+#include "boost/python/numpy.hpp"
+#include "vec2np.h"
 #include "Tetronimos.h"
 
 // #include <boost/python.hpp>
@@ -16,6 +18,9 @@
 const int board_rows = 20;
 const int board_cols = 10;
 const int board_size = board_rows*board_cols;
+
+namespace bp = boost::python;
+namespace bn = boost::python::numpy;
 
 typedef enum {
   COMMIT,
@@ -33,6 +38,9 @@ class Board{
     void print_board();
 };
 Board::Board(){
+  for (int i=0; i<board_size; i++){
+    board_array[i] = 0;
+  }
 }
 Board::~Board(){
 }
@@ -97,7 +105,7 @@ Moves::Moves(Tetronimos * t_set){
 
   int action_num;
   for(int i = 0; i < (int)(move_set.size()); i++){
-    action_num = (*move_set[i]).size();
+    action_num = move_set[i]->size();
     // printf("The number of actions is %d\n", action_num);
     num_actions.push_back(action_num);
     if (action_num > max_action_num){
@@ -113,13 +121,14 @@ Moves::~Moves(){
     }
   }
 }
-
 void Moves::fill_array(std::vector<action *> * v, Tetronimos * t_set, int tetronimo_idx){
   int num_orientations;
   int tetronimo_width;
   // I actions
   num_orientations = t_set->get_num_orientation(tetronimo_idx);
   // printf("the number of orientations is %d\n", num_orientations);
+  int num_action =0;
+  // printf("filling the array with %d actions\n", num_orientations * )
   for (int i = 0; i<num_orientations; i++){
     tetronimo_width = t_set->get_tetronimo_width(tetronimo_idx,i);
     for (int j = 0; j<(board_cols - tetronimo_width + 1); j++){
@@ -128,17 +137,17 @@ void Moves::fill_array(std::vector<action *> * v, Tetronimos * t_set, int tetron
       a->orientation_idx = i;
       a->col_idx = j;
       v->push_back(a);
+      num_action++;
     }
   }
+  // printf("filling the array with %d actions\n", num_action);
 }
-
 action * Moves::get_action(int tetronimo_idx, int action_idx){
   // printf("%d, %d\n", tetronimo_idx, action_idx);
   // printf("%lu\n", move_set.size());
   // printf("%lu\n", (*move_set[tetronimo_idx]).size());
   return (*move_set[tetronimo_idx])[action_idx];
 }
-
 int Moves::get_num_actions(int tetronimo_idx){
   return num_actions[tetronimo_idx];
 }
@@ -147,7 +156,7 @@ class Tetris{
   int length;
   std::vector<int> tetronimos;
   public:
-    Tetris(int);
+    Tetris(bn::ndarray, int);
     ~Tetris();
     Tetronimos * t_set;
 
@@ -167,13 +176,17 @@ class Tetris{
     bool can_place(Board *, Tetronimo *, int, int);
     bool place_tetronimo(Board *, int, int);
     bool take_action(int, int);
-    std::vector<int> make_state(Board *, int);
-    std::vector<int> get_state(int);
+    std::vector<int> * make_state(Board *, int);
+    std::vector<int> * get_state(int);
+    bn::ndarray make_nd_state(Board *, int);
+    bn::ndarray get_nd_state(int);
     int get_reward();
     void reset_search();
     void reset_explore();
+    bn::ndarray explore();
+    void print_board();
 };
-Tetris::Tetris(int l) {
+Tetris::Tetris(bn::ndarray arr, int l) {
 
   t_set = new Tetronimos();
 
@@ -188,18 +201,13 @@ Tetris::Tetris(int l) {
   max_action_num = move_set->max_action_num;
 
   length = l;
-  tetronimos.reserve(length);
-  srand ((unsigned)time(NULL));
-  int wait = 0;
-  while (wait < 100){
-    wait++;
-    rand();
-  }
+  tetronimos = np2vec(&arr, l);
+
   for (int i = 0; i < length; i++){
-    tetronimos[i] = rand()%7;
-    printf("The tetronimo idx is %d\n", tetronimos[i]);
+    // tetronimos[i] = rand()%7;
+    // printf("The tetronimo idx is %d\n", tetronimos[i]);
   }
-  printf("\n");
+  // printf("\n");
 }
 Tetris::~Tetris(){
   delete t_set;
@@ -319,25 +327,69 @@ bool Tetris::take_action(int action_idx, int state){
       return true;
   }
 }
-std::vector<int> Tetris::make_state(Board * board, int tetronimo_idx){
+bn::ndarray Tetris::make_nd_state(Board * board, int tetronimo_idx){
 
   int num_tetronimos = t_set->get_num_tetronimos();
+  // board->print_board();
+  // printf("The num tetronimos is %d\n", num_tetronimos);
   std::vector<int> state;
-  state.reserve(board_cols + num_tetronimos);
+  state.resize(board_cols + num_tetronimos);
   int j;
   for(int i = 0; i < board_cols; i++){
     j = board_rows-1;
     while(j>=0 && board->get(j,i) == 0){
       j--;
     }
+    // printf("The state is %d\n", j+1);
     state[i] = j+1;
   }
-  if (tetronimo_idx > 0){
+  if (tetronimo_idx >= 0){
     state[board_cols+tetronimo_idx] = 1;
+    // printf("The state at %d is %d\n", tetronimo_idx, 1);
   }
+  // printf("make_state thinks the size of the vector is %lu\n", state.size());
+  return vec2np(&state);
+}
+bn::ndarray Tetris::get_nd_state(int state){
+  int tetronimo_idx;
+  switch (state) {
+    case COMMIT:
+      tetronimo_idx = tetronimos[committed_move_num];
+      return make_nd_state(committed_board, tetronimo_idx);
+    case SEARCH:
+      tetronimo_idx = tetronimos[search_move_num];
+      return make_nd_state(search_board, tetronimo_idx);
+    case EXPLORE:
+      tetronimo_idx = tetronimos[exploration_move_num];
+      return make_nd_state(exploration_board, tetronimo_idx);
+    default:
+      return make_nd_state(exploration_board, -1);
+  }
+}
+std::vector<int> * Tetris::make_state(Board * board, int tetronimo_idx){
+
+  int num_tetronimos = t_set->get_num_tetronimos();
+  // board->print_board();
+  // printf("The num tetronimos is %d\n", num_tetronimos);
+  std::vector<int> * state = new std::vector<int>;
+  state->resize(board_cols + num_tetronimos);
+  int j;
+  for(int i = 0; i < board_cols; i++){
+    j = board_rows-1;
+    while(j>=0 && board->get(j,i) == 0){
+      j--;
+    }
+    // printf("The state is %d\n", j+1);
+    (*state)[i] = j+1;
+  }
+  if (tetronimo_idx >= 0){
+    (*state)[board_cols+tetronimo_idx] = 1;
+    // printf("The state at %d is %d\n", tetronimo_idx, 1);
+  }
+  // printf("make_state thinks the size of the vector is %lu\n", state.size());
   return state;
 }
-std::vector<int> Tetris::get_state(int state){
+std::vector<int> * Tetris::get_state(int state){
   int tetronimo_idx;
   switch (state) {
     case COMMIT:
@@ -378,47 +430,34 @@ void Tetris::reset_explore(){
   board_cpy(search_board, exploration_board);
   exploration_move_num = search_move_num;
 }
+bn::ndarray Tetris::explore(){
+  int state_size = 17;
+  // printf("%d, %d, %d\n", committed_move_num, search_move_num, exploration_move_num);
+  int num_actions = get_num_actions(1); // num children
+  // printf("%d, %d, %d\n", tetronimos[search_move_num], move_set->get_num_actions(tetronimos[search_move_num]), num_actions);
+  std::vector<int> states;
+  states.reserve(state_size*num_actions);
+  for (int i = 0; i<num_actions; i++){
+    take_action(i,2);
+    std::vector<int> * state = get_state(2);
+    std::copy(state->begin(), state->end(), std::back_inserter(states));
+    delete state;
+    reset_explore();
+  }
+  return vec2np(&states);
+}
+void Tetris::print_board(){
+  committed_board->print_board();
+}
 
-// BOOST_PYTHON_MODULE(Tetris) {
-//     // An established convention for using boost.python.
-//     using namespace boost::python;
-//
-//     // Expose the function hello().
-//
-//     // Expose the class Animal.
-//     class_<Tetris>("Tetris",
-//         init<int>())
-//         .def("get_state", &Tetris::get_state)
-//         .def("get_reward", &Tetris::get_reward)
-//         .def("take_action", &Tetris::take_action)
-//         .def("reset_search", &Tetris::reset_search)
-//         .def("reset_explore", &Tetris::reset_explore)
-//         .def("get_num_actions", &Tetris::get_num_actions)
-//         // .add_property("name", &Tetris::get_name, &Animal::set_name)
-//     ;
-// }
-
-
-// int main(){
-//   Tetris tetris = Tetris(10);
-//   // printf("number of actions is %d\n", tetris.get_num_actions(0));
-//   // tetris.committed_move_num++;
-//   // printf("number of actions is %d\n", tetris.get_num_actions(0));
-//   tetris.take_action(0,0);
-//   tetris.committed_board->print_board();
-//   tetris.take_action(0,0);
-//   tetris.committed_board->print_board();
-//   // printf("I made it all the way to the end\n");
-//
-// }
-
-// t = Tetris.Tetris(10)
-
-#include <boost/python.hpp>
 
 BOOST_PYTHON_MODULE(Tetris)
 {
   using namespace boost::python;
-  class_<Tetris>("Tetris", init<int>())
-    .def("take_action", &Tetris::take_action);
+  numpy::initialize();
+  class_<Tetris>("Tetris", init<numpy::ndarray, int>())
+    .def("take_action", &Tetris::take_action)
+    .def("get_state", &Tetris::get_nd_state)
+    .def("explore", &Tetris::explore)
+    .def("print", &Tetris::print_board);
 }

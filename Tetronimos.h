@@ -122,7 +122,7 @@ void Tetronimos::fill_tetronimo_array(std::vector<Tetronimo *> *shape, int dimen
   }
 
   // tet->print_tile();
-  for(int i = 1; i < (int)((*shape).size()); i++){
+  for(int i = 1; i < 4; i++){
     Tetronimo * tet = new Tetronimo();
     *tet = (*shape)[i-1]->rotate();
     shape->push_back(tet);
