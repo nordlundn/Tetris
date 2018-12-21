@@ -113,7 +113,8 @@ void Tetronimos::fill_tetronimo_array(std::vector<Tetronimo *> *shape, int dimen
   size++;
   Tetronimo * tet = new Tetronimo();
   tet->build(dimensions);
-  shape->push_back(tet);
+  // shape->push_back(tet);
+  (*shape)[0] = tet;
   if (sorz == 1){ // s tetronimo
     tet->set_tile(2,0,0);
   }
@@ -122,10 +123,11 @@ void Tetronimos::fill_tetronimo_array(std::vector<Tetronimo *> *shape, int dimen
   }
 
   // tet->print_tile();
-  for(int i = 1; i < 4; i++){
+  for(int i = 1; i < shape->size(); i++){
     Tetronimo * tet = new Tetronimo();
     *tet = (*shape)[i-1]->rotate();
-    shape->push_back(tet);
+    // shape->push_back(tet);
+    (*shape)[i] = tet;
     // tet->print_tile();
 
   }
@@ -139,6 +141,15 @@ void Tetronimos::fill_tetronimo_array(std::vector<Tetronimo *> *shape, int dimen
 }
 
 void Tetronimos::init(){
+
+  I.resize(2);
+  J.resize(4);
+  L.resize(4);
+  O.resize(1);
+  S.resize(2);
+  Z.resize(2);
+  T.resize(4);
+
   int dimensions[4] = {4,0,0,0};
   fill_tetronimo_array(&I, dimensions,0);
 

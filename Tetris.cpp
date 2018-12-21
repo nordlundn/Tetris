@@ -436,10 +436,16 @@ bn::ndarray Tetris::explore(){
   int num_actions = get_num_actions(1); // num children
   // printf("%d, %d, %d\n", tetronimos[search_move_num], move_set->get_num_actions(tetronimos[search_move_num]), num_actions);
   std::vector<int> states;
-  states.reserve(state_size*num_actions);
+  states.reserve((state_size+2)*num_actions);
+  int game_over;
+  int num_children;
   for (int i = 0; i<num_actions; i++){
-    take_action(i,2);
+    game_over = (int)(take_action(i,2));
+    num_children = get_num_actions(2);
+    // printf("Game over is %d\n", game_over);
     std::vector<int> * state = get_state(2);
+    states.push_back(game_over);
+    states.push_back(num_children);
     std::copy(state->begin(), state->end(), std::back_inserter(states));
     delete state;
     reset_explore();
@@ -459,5 +465,6 @@ BOOST_PYTHON_MODULE(Tetris)
     .def("take_action", &Tetris::take_action)
     .def("get_state", &Tetris::get_nd_state)
     .def("explore", &Tetris::explore)
-    .def("print", &Tetris::print_board);
+    .def("print", &Tetris::print_board)
+    .def("get_num_actions", &Tetris::get_num_actions);
 }
