@@ -456,7 +456,6 @@ void Tetris::print_board(){
   committed_board->print_board();
 }
 
-
 BOOST_PYTHON_MODULE(Tetris)
 {
   using namespace boost::python;

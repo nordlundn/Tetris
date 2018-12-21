@@ -23,19 +23,15 @@ class Tetronimo{
     ~Tetronimo();
     Tetronimo();
 };
-
 int Tetronimo::get_idx(int i, int j){
   return(i*4 + j);
 }
-
 void Tetronimo::set_tile(int i, int j, int val){
   tile[get_idx(i,j)] = val;
 }
-
 int Tetronimo::get_tile(int i, int j){
   return tile[get_idx(i,j)];
 }
-
 void Tetronimo::build(int dimensions[4]){
   int i;
   int j;
@@ -51,7 +47,6 @@ void Tetronimo::build(int dimensions[4]){
     }
   }
 }
-
 void Tetronimo::print_tile(){
   for(int i = 0; i<height; i++){
     for(int j = 0; j<width; j++){
@@ -60,7 +55,6 @@ void Tetronimo::print_tile(){
     printf("\n");
   }
 }
-
 Tetronimo Tetronimo::rotate(){ // returns rotated version of class
   Tetronimo rotated_Tetronimo = Tetronimo();
   rotated_Tetronimo.height = width;
@@ -81,11 +75,9 @@ Tetronimo::Tetronimo(){
   height = 0;
   width = 0;
 }
-
 Tetronimo::~Tetronimo(){
   // printf("Deleting tetronimo\n");
 }
-
 
 class Tetronimos{
     std::vector<Tetronimo *> I;
@@ -108,7 +100,6 @@ class Tetronimos{
     ~Tetronimos();
 
 };
-
 void Tetronimos::fill_tetronimo_array(std::vector<Tetronimo *> *shape, int dimensions[4], int sorz){ // when passing vector, pass pointer to vector
   size++;
   Tetronimo * tet = new Tetronimo();
@@ -139,7 +130,6 @@ void Tetronimos::fill_tetronimo_array(std::vector<Tetronimo *> *shape, int dimen
 
   return;
 }
-
 void Tetronimos::init(){
 
   I.resize(2);
@@ -189,7 +179,6 @@ void Tetronimos::init(){
   dimensions[3] = 0;
   fill_tetronimo_array(&T, dimensions,0);
 }
-
 Tetronimo * Tetronimos::get_tetronimo(int tetronimo_idx, int orientation_idx){
 
   switch(tetronimo_idx){
@@ -211,7 +200,6 @@ Tetronimo * Tetronimos::get_tetronimo(int tetronimo_idx, int orientation_idx){
       return I[orientation_idx];
   }
 }
-
 int Tetronimos::get_num_orientation(int tetronimo_idx){
   switch(tetronimo_idx){
     case 0:
@@ -232,7 +220,6 @@ int Tetronimos::get_num_orientation(int tetronimo_idx){
       return 0;
   }
 }
-
 int Tetronimos::get_tetronimo_width(int tetronimo_idx, int orientation_idx){
   switch(tetronimo_idx){
     case 0:
@@ -253,11 +240,9 @@ int Tetronimos::get_tetronimo_width(int tetronimo_idx, int orientation_idx){
       return (*I[orientation_idx]).width;
   }
 }
-
 int Tetronimos::get_num_tetronimos(){
   return(size);
 }
-
 Tetronimos::Tetronimos(){ // constructor
   I.reserve(2);
   J.reserve(4);
@@ -270,7 +255,6 @@ Tetronimos::Tetronimos(){ // constructor
   init();
 
 }
-
 Tetronimos::~Tetronimos(){ // destructor
   // printf("Destoying tetronimos\n");
   for(int i = 0; i<(int)(I.size()); i++){
