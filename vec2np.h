@@ -36,10 +36,11 @@ std::vector<int> np2vec(bn::ndarray * arr, int size){
 }
 
 void np2doublevec(bn::ndarray * arr, std::vector<double> * vec, int size){
+  // printf("Converting numpy array to vector\n");
   double * int_arr = reinterpret_cast<double*>(arr->get_data());
   vec->resize(size);
-  for (int i = 0; i<size*2;i+=2){
-    // printf("NP array element is %d\n", int_arr[i]);
-    (*vec)[i/2] = int_arr[i];
+  for (int i = 0; i<size;i++){
+    // printf("NP array element is %f\n", int_arr[i]);
+    (*vec)[i] = int_arr[i];
   }
 }

@@ -291,11 +291,14 @@ bool Tetris::place_tetronimo(Board * board, int tetronimo_idx, int action_idx){
   }
 }
 bool Tetris::take_action(int action_idx, int state){
+  // printf("Tetris::take_action\n");
   bool game_over = false;
   int tetronimo_idx;
   switch (state) {
     case COMMIT:
       tetronimo_idx = tetronimos[committed_move_num];
+      // printf("Tetris::Commit take action %d with tetronimo idx %d\n", action_idx, tetronimo_idx);
+      // if (action_idx > get_num_actions(0)){printf("Invalid action");}
       game_over = place_tetronimo(committed_board, tetronimo_idx, action_idx);
       committed_move_num++;
       search_move_num = committed_move_num;
@@ -304,26 +307,35 @@ bool Tetris::take_action(int action_idx, int state){
       if (committed_move_num >= length){
         game_over = true;
       }
+      // printf("Tetris::Commit take_action: success\n");
       return game_over;
     case SEARCH:
       tetronimo_idx = tetronimos[search_move_num];
+      // printf("Tetris::Search take action %d with tetronimo idx %d\n", action_idx, tetronimo_idx);
+      // if (action_idx > get_num_actions(1)){printf("Invalid action");}
       game_over = place_tetronimo(search_board, tetronimo_idx, action_idx);
       search_move_num++;
       exploration_move_num = search_move_num;
       if (search_move_num >= length){
         game_over = true;
       }
+      // printf("Tetris::Search take_action: success\n");
       return game_over;
 
     case EXPLORE:
       tetronimo_idx = tetronimos[exploration_move_num];
+      // printf("Tetris::Explore move num %d\n", exploration_move_num);
+      // printf("Tetris::Explore take action %d with tetronimo idx %d\n", action_idx, tetronimo_idx);
+      // if (action_idx > get_num_actions(1)){printf("Invalid action");}
       game_over = place_tetronimo(exploration_board, tetronimo_idx, action_idx);
       exploration_move_num++;
       if (exploration_move_num >= length){
         game_over = true;
       }
+      // printf("Tetris::Explore take_action: success\n");
       return game_over;
     default:
+      // printf("Tetris::take_action: success\n");
       return true;
   }
 }
@@ -423,14 +435,21 @@ int Tetris::get_reward(){
   return reward;
 }
 void Tetris::reset_search(){
+  // printf("Tetris::reset_search\n");
+  // printf("Committed num = %d\n", committed_move_num);
   board_cpy(committed_board, search_board);
   search_move_num = committed_move_num;
+  exploration_move_num = committed_move_num;
+  // printf("Tetris::reset_search: success\n");
 }
 void Tetris::reset_explore(){
+  // printf("Tetris::exploration_search\n");
   board_cpy(search_board, exploration_board);
   exploration_move_num = search_move_num;
+  // printf("Tetris::exploration_search: success\n");
 }
 bn::ndarray Tetris::explore(){
+  // printf("Tetris::explore\n");
   int state_size = 17;
   // printf("%d, %d, %d\n", committed_move_num, search_move_num, exploration_move_num);
   int num_actions = get_num_actions(1); // num children
@@ -442,7 +461,8 @@ bn::ndarray Tetris::explore(){
   for (int i = 0; i<num_actions; i++){
     game_over = (int)(take_action(i,2));
     num_children = get_num_actions(2);
-    // printf("Game over is %d\n", game_over);
+    if (game_over == 1){num_children = 0;}
+    else{num_children = get_num_actions(2);}
     std::vector<int> * state = get_state(2);
     states.push_back(game_over);
     states.push_back(num_children);
@@ -450,6 +470,7 @@ bn::ndarray Tetris::explore(){
     delete state;
     reset_explore();
   }
+  // printf("Tetris::explore: success\n");
   return vec2np(&states);
 }
 void Tetris::print_board(){
@@ -465,5 +486,6 @@ BOOST_PYTHON_MODULE(Tetris)
     .def("get_state", &Tetris::get_nd_state)
     .def("explore", &Tetris::explore)
     .def("print", &Tetris::print_board)
-    .def("get_num_actions", &Tetris::get_num_actions);
+    .def("get_num_actions", &Tetris::get_num_actions)
+    .def("reset_search", &Tetris::reset_search);
 }

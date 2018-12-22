@@ -13,7 +13,7 @@ BOOST_LIB = /home/nick/boost_libs_conda/lib
 # TARGET = Tetris
 OBJECTS = Tetris Tree
 
-CFLAGS = --std=c++11
+CFLAGS = --std=c++11 -ggdb3
 
 # $(TARGET).so: $(TARGET).o
 # 	g++ -shared -Wl,--export-dynamic $(TARGET).o -L$(BOOST_LIB) -lboost_python$(subst .,,$(PYTHON_VERSION)) -L$(BOOST_LIB) -lboost_numpy$(subst .,,$(PYTHON_VERSION)) /usr/lib/python$(PYTHON_VERSION)/config-3.6m-x86_64-linux-gnu/libpython3.6.so -o $(TARGET).so $(CFLAGS)

@@ -80,13 +80,13 @@ Tetronimo::~Tetronimo(){
 }
 
 class Tetronimos{
-    std::vector<Tetronimo *> I;
-    std::vector<Tetronimo *> J;
-    std::vector<Tetronimo *> L;
-    std::vector<Tetronimo *> O;
-    std::vector<Tetronimo *> S;
-    std::vector<Tetronimo *> Z;
-    std::vector<Tetronimo *> T;
+    std::vector<Tetronimo *> I; //17
+    std::vector<Tetronimo *> J; //34
+    std::vector<Tetronimo *> L; //34
+    std::vector<Tetronimo *> O; //9
+    std::vector<Tetronimo *> S; //17
+    std::vector<Tetronimo *> Z; //17
+    std::vector<Tetronimo *> T; //34
 
   public:
     int size;
