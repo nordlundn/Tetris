@@ -15,26 +15,32 @@ class Node{
   std::vector<double> p;
   double v; // intrinsic value of node state from neural network
   public:
+    double * policy_arr;
+
     double Q; // average value updated according to MCTS
     double N; // number of visits to this node
     double W; // unweighted value of this path;
-    std::vector<Node *> children; // vector containing addresses of all the child nodes
+    std::vector<std::shared_ptr<Node>> children; // vector containing addresses of all the child nodes
     int num_children; // number of children this node has
     Node(); // constructor
     ~Node(); // destructor
-    void set_children(int); // sets num_children and creates node instances
     int arg_max(std::vector<double>); // arg_max
     int select_action(); // policy for traversing the tree
-    bn::ndarray get_policy(double tau); // policy returned by the MCTS
+    bn::ndarray get_pi(double tau); // policy returned by the MCTS
+    void set_children(int); // sets num_children and creates node instances
     void set_terminal(bool); // no valid moves from this board state
-    void set_values(bn::ndarray *, double, int);
-    void set_child_values(bp::list *, bp::list *, bp::list *, bp::list *);
     bool get_visited(); // visited getter
     bool get_terminal(); // terminal getter
     Node * get_child(int);
-
+    bn::ndarray get_policy();
+    void set_params(double, int);
+    void set_visited(bool);
+    void print_policy();
+    void set_grandchildren(int, int);
+    void set_child_params(double, int, int);
 };
 Node::Node(){
+  // printf("Made it here\n");
   Q = -1.0; // initial value for the weighted average
   N = 1; // number of visits is 1
   visited = false;
@@ -42,8 +48,8 @@ Node::Node(){
   num_children = 0;
 }
 Node::~Node(){
-  for (int i = 0; i<num_children; i++){
-    delete children[i];
+  if (num_children > 0){
+    delete [] policy_arr;
   }
 }
 int Node::arg_max(std::vector<double> arr){
@@ -66,7 +72,7 @@ int Node::select_action(){
   double s = 0;
 
   for (int i = 0; i < num_children; i++){
-    u[i] = p[i]/(1+children[i]->N);
+    u[i] = policy_arr[i]/(1+children[i]->N);
     q[i] = children[i]->Q;
     s += u[i];
     // printf("(%f, %f) ", u[i], q[i]);
@@ -80,7 +86,7 @@ int Node::select_action(){
   // printf("printed action!\n");
   return arg_max(u);
 }
-bn::ndarray Node::get_policy(double tau){
+bn::ndarray Node::get_pi(double tau){
   std::vector<double> pi;
   pi.resize(num_children);
   double s = 0;
@@ -94,47 +100,21 @@ bn::ndarray Node::get_policy(double tau){
   return doublevec2np(&pi);
 
 }
-
-void Node::set_values(bn::ndarray * policy, double value, int size){
-  np2doublevec(policy, &p, size);
-  v = value;
-  Q = value;
-  W = Q/N;
-}
-void Node::set_child_values(bp::list * policies, bp::list * values, bp::list * game_over, bp::list * num_chil){
-  // printf("Node:: terminal %d\n", terminal);
-  if (terminal){
-    return;
-  }
-  for (int i = 0; i<num_children; i++){
-    int terminal_child = (int)(bp::extract<double>((*game_over)[i]));
-    if (terminal_child == 1){ // if no valid moves from this state
-      children[i]->set_terminal(true);
-      // printf("Node:: my child is terminal %d\n", terminal_child);
-    }
-    else{
-      // printf("Node:: my child is not terminal %d\n", terminal_child);
-      bn::ndarray policy = bp::extract<bn::ndarray>((*policies)[i]);
-      double value = bp::extract<double>((*values)[i]);
-      int num = (int)(bp::extract<double>((*num_chil)[i]));
-      children[i]->set_children(num);
-      children[i]->set_values(&policy, value, num);
-    }
-  }
-  visited = true;
-}
 void Node::set_children(int num_children){
+  // printf("setting children %d\n", num_children);
   this->num_children = num_children;
+  policy_arr = new double[num_children];
   children.resize(num_children);
   for(int i = 0; i<num_children; i++){
-    children[i] = new Node();
+    policy_arr[i] = 0.0;
+    children[i] = std::make_shared<Node>();
   }
 }
 void Node::set_terminal(bool val){
   terminal = val;
 }
 Node * Node::get_child(int idx){
-  return(children[idx]);
+  return((children[idx]).get());
 }
 bool Node::get_visited(){
   return visited;
@@ -142,6 +122,31 @@ bool Node::get_visited(){
 bool Node::get_terminal(){
   return terminal;
 }
+bn::ndarray Node::get_policy(){
+  return bn::from_data(policy_arr, bn::dtype::get_builtin<double>(), bp::make_tuple(num_children), bp::make_tuple(sizeof(double)), bp::object());
+}
+void Node::set_params(double value, int game_over){
+  v = value;
+  Q = value;
+  W = Q/N;
+  if (game_over == 1){terminal = true;}
+}
+void Node::set_visited(bool val){
+  visited = val;
+}
+void Node::print_policy(){
+  for (int i = 0; i < num_children; i++){
+    printf("%f, ", policy_arr[i]);
+  }
+  printf("\n");
+}
+void Node::set_grandchildren(int num_children, int idx){
+  children[idx]->set_children(num_children);
+}
+void Node::set_child_params(double value, int game_over, int idx){
+  children[idx]->set_params(value, game_over);
+}
+
 
 
 // BOOST_PYTHON_MODULE(Node)

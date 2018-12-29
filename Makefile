@@ -11,7 +11,7 @@ BOOST_INC = /home/nick/boost_1_69_0
 BOOST_LIB = /home/nick/boost_libs_conda/lib
 
 # TARGET = Tetris
-OBJECTS = Tetris Tree
+OBJECTS = Tetris MCTS
 
 CFLAGS = --std=c++11 -ggdb3
 

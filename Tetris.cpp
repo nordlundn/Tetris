@@ -176,8 +176,8 @@ class Tetris{
     bool can_place(Board *, Tetronimo *, int, int);
     bool place_tetronimo(Board *, int, int);
     bool take_action(int, int);
-    std::vector<int> * make_state(Board *, int);
-    std::vector<int> * get_state(int);
+    std::vector<int> make_state(Board *, int);
+    std::vector<int> get_state(int);
     bn::ndarray make_nd_state(Board *, int);
     bn::ndarray get_nd_state(int);
     int get_reward();
@@ -378,13 +378,13 @@ bn::ndarray Tetris::get_nd_state(int state){
       return make_nd_state(exploration_board, -1);
   }
 }
-std::vector<int> * Tetris::make_state(Board * board, int tetronimo_idx){
+std::vector<int> Tetris::make_state(Board * board, int tetronimo_idx){
 
   int num_tetronimos = t_set->get_num_tetronimos();
   // board->print_board();
   // printf("The num tetronimos is %d\n", num_tetronimos);
-  std::vector<int> * state = new std::vector<int>;
-  state->resize(board_cols + num_tetronimos);
+  std::vector<int> state;
+  state.resize(board_cols + num_tetronimos);
   int j;
   for(int i = 0; i < board_cols; i++){
     j = board_rows-1;
@@ -392,16 +392,16 @@ std::vector<int> * Tetris::make_state(Board * board, int tetronimo_idx){
       j--;
     }
     // printf("The state is %d\n", j+1);
-    (*state)[i] = j+1;
+    state[i] = j+1;
   }
   if (tetronimo_idx >= 0){
-    (*state)[board_cols+tetronimo_idx] = 1;
+    state[board_cols+tetronimo_idx] = 1;
     // printf("The state at %d is %d\n", tetronimo_idx, 1);
   }
   // printf("make_state thinks the size of the vector is %lu\n", state.size());
   return state;
 }
-std::vector<int> * Tetris::get_state(int state){
+std::vector<int> Tetris::get_state(int state){
   int tetronimo_idx;
   switch (state) {
     case COMMIT:
@@ -411,7 +411,13 @@ std::vector<int> * Tetris::get_state(int state){
       tetronimo_idx = tetronimos[search_move_num];
       return make_state(search_board, tetronimo_idx);
     case EXPLORE:
-      tetronimo_idx = tetronimos[exploration_move_num];
+      if (exploration_move_num == length){
+        tetronimo_idx = -1;
+      }
+      else{
+        tetronimo_idx = tetronimos[exploration_move_num];
+      }
+      // printf("Getting exploration state for move num %d\n", exploration_move_num);
       return make_state(exploration_board, tetronimo_idx);
     default:
       return make_state(exploration_board, -1);
@@ -454,20 +460,27 @@ bn::ndarray Tetris::explore(){
   // printf("%d, %d, %d\n", committed_move_num, search_move_num, exploration_move_num);
   int num_actions = get_num_actions(1); // num children
   // printf("%d, %d, %d\n", tetronimos[search_move_num], move_set->get_num_actions(tetronimos[search_move_num]), num_actions);
+  // printf("The number of actions is %d\n", num_actions);
   std::vector<int> states;
   states.reserve((state_size+2)*num_actions);
   int game_over;
   int num_children;
   for (int i = 0; i<num_actions; i++){
     game_over = (int)(take_action(i,2));
-    num_children = get_num_actions(2);
+    // printf("Child %d: Gameover %d\n", i, game_over);
+    // num_children = get_num_actions(2);
     if (game_over == 1){num_children = 0;}
     else{num_children = get_num_actions(2);}
-    std::vector<int> * state = get_state(2);
+    // printf("Child %d: num_children = %d\n", i, num_children);
+    std::vector<int> state = get_state(2);
+    // printf("The state is ");
+    for (int j = 0; j < num_children; j++){
+      // printf("%d, ", state[j]);
+    }
+    // printf("\n");
     states.push_back(game_over);
     states.push_back(num_children);
-    std::copy(state->begin(), state->end(), std::back_inserter(states));
-    delete state;
+    std::copy(state.begin(), state.end(), std::back_inserter(states));
     reset_explore();
   }
   // printf("Tetris::explore: success\n");
