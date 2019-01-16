@@ -4,6 +4,7 @@
 #include <array>
 #include <boost/python.hpp>
 #include "boost/python/numpy.hpp"
+#include "vec2np.h"
 
 namespace bp = boost::python;
 namespace bn = boost::python::numpy;
@@ -37,6 +38,7 @@ class MCTS{
     bn::ndarray get_policy();
     void back_prop();
     bn::ndarray get_child_policy(int);
+    bn::ndarray get_pi(double);
 };
 MCTS::MCTS(){
   Q = -1.0; // initial value for the weighted average
@@ -156,7 +158,19 @@ void MCTS::back_prop(){
     new_child->Q = (new_child->W)/(new_child->N);
   }
 }
-
+bn::ndarray MCTS::get_pi(double tau){
+  std::vector<double> pi;
+  pi.resize(root->num_children);
+  double s = 0;
+  for(int i = 0; i < root->num_children; i++){
+    pi[i] = pow(root->children[i]->N, tau);
+    s+=pi[i];
+  }
+  for(int i = 0; i < root->num_children; i++){
+    pi[i]/=s;
+  }
+  return doublevec2np(&pi);
+}
 
 BOOST_PYTHON_MODULE(MCTS)
 {
@@ -173,5 +187,6 @@ BOOST_PYTHON_MODULE(MCTS)
     .def("reset", &MCTS::reset)
     .def("get_policy", &MCTS::get_policy)
     .def("get_child_policy", &MCTS::get_child_policy)
+    .def("get_pi", &MCTS::get_pi)
   ;
 }

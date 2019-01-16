@@ -5,8 +5,6 @@
 #include <vector>
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
-#include "boost/random.hpp"
-#include "boost/generator_iterator.hpp"
 
 #include <boost/python.hpp>
 #include "boost/python/numpy.hpp"
@@ -181,10 +179,11 @@ class Tetris{
     bn::ndarray make_nd_state(Board *, int);
     bn::ndarray get_nd_state(int);
     int get_reward();
+    void reset_committed();
     void reset_search();
     void reset_explore();
     bn::ndarray explore();
-    void print_board();
+    void print_board(int);
 };
 Tetris::Tetris(bn::ndarray arr, int l) {
 
@@ -424,21 +423,41 @@ std::vector<int> Tetris::get_state(int state){
   }
 }
 int Tetris::get_reward(){
-  int reward = 0;
+  // int reward = 0;
+  // int height = board_rows;
+  // int width = board_cols;
+  // bool finished = false;
+  // for(int i = 0; i < height; i++){
+  //   finished = true;
+  //   for (int j = 0; j < width-1; j++){
+  //     reward += committed_board->get(i,j)^committed_board->get(i,j+1);
+  //     finished &= (committed_board->get(i,j) == 0) && (committed_board->get(i,j+1) == 0);
+  //   }
+  //   if (finished){
+  //     return reward;
+  //   }
+  // }
+  // return reward;
   int height = board_rows;
   int width = board_cols;
-  bool finished = false;
-  for(int i = 0; i < height; i++){
-    finished = true;
-    for (int j = 0; j < width-1; j++){
-      reward += committed_board->get(i,j)^committed_board->get(i,j+1);
-      finished &= (committed_board->get(i,j) == 0) && (committed_board->get(i,j+1) == 0);
+  int aggregate_height = 0;
+  for (int i = 0; i<width; i++){
+    int j = height-1;
+    while (j>=0 && committed_board->get(j,i)==0){
+      j--;
     }
-    if (finished){
-      return reward;
+    aggregate_height+=(j+1);
+  }
+  return aggregate_height;
+}
+void Tetris::reset_committed(){
+  for(int i = 0; i < board_rows; i++){
+    for(int j = 0; j < board_cols; j++){
+      committed_board->set(i,j,0);
     }
   }
-  return reward;
+  committed_move_num = 0;
+  reset_search();
 }
 void Tetris::reset_search(){
   // printf("Tetris::reset_search\n");
@@ -474,9 +493,9 @@ bn::ndarray Tetris::explore(){
     // printf("Child %d: num_children = %d\n", i, num_children);
     std::vector<int> state = get_state(2);
     // printf("The state is ");
-    for (int j = 0; j < num_children; j++){
-      // printf("%d, ", state[j]);
-    }
+    // for (int j = 0; j < num_children; j++){
+    //   // printf("%d, ", state[j]);
+    // }
     // printf("\n");
     states.push_back(game_over);
     states.push_back(num_children);
@@ -486,8 +505,17 @@ bn::ndarray Tetris::explore(){
   // printf("Tetris::explore: success\n");
   return vec2np(&states);
 }
-void Tetris::print_board(){
-  committed_board->print_board();
+void Tetris::print_board(int state){
+  if (state == 0){
+    committed_board->print_board();
+  }
+  else if (state == 1){
+    search_board->print_board();
+  }
+  else{
+    exploration_board->print_board();
+  }
+
 }
 
 BOOST_PYTHON_MODULE(Tetris)
@@ -500,5 +528,8 @@ BOOST_PYTHON_MODULE(Tetris)
     .def("explore", &Tetris::explore)
     .def("print", &Tetris::print_board)
     .def("get_num_actions", &Tetris::get_num_actions)
-    .def("reset_search", &Tetris::reset_search);
+    .def("reset_committed", &Tetris::reset_committed)
+    .def("reset_search", &Tetris::reset_search)
+    .def("get_reward", &Tetris::get_reward)
+    ;
 }
